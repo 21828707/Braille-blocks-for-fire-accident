@@ -1,0 +1,132 @@
+#include <SoftwareSerial.h>
+#include <WiFiEsp.h>
+#include <Arduino.h>
+#include <DHT.h> // 아두이노 온습도 센서를 사용하기 위한 라이브러리
+
+#define DH0 A0
+#define DHTType DHT11
+
+
+SoftwareSerial espSerial(2, 3); // 소프트웨어 시리얼 객체(-> 마이크로컨트롤러와 컴퓨터 또는 다른 장치 간에 데이터 통신을 위해 사용되는 객체) 생성 (RX, TX)
+DHT dhtA0(DH0, DHTType); // define정의 참고; 온습도 측정을 위한 객체 생성; dht+'이름'(입력 핀 번호, 센서 종류(DHT11))
+
+char ssid[] = "..."; // Wi-Fi 네트워크 SSID
+char password[] = "..."; // Wi-Fi 네트워크 비밀번호
+char server[] = "..."; // PHP 서버 ip주소
+int port = 80; // PHP 서버 접속 포트 -> 아파치 이용.
+float tempA0; // 온도값 저장 변수
+float humiA0; // 습도값 저장 변수
+String qwer; // 디바이스의 ip주소를 저장하기 위한 변수
+WiFiEspClient client;// 서버에 연결하여 데이터를 보내거나 받을 때 사용하는 객체
+
+void setup() {
+  Serial.begin(9600); // 시리얼 통신 초기화
+  espSerial.begin(9600); // ESP-01 모듈과 소프트웨어 시리얼 통신 초기화
+  pinMode(8, OUTPUT);
+  pinMode(10, OUTPUT);
+  WiFi.init(&espSerial); // WiFiEsp 라이브러리 초기화
+  dhtA0.begin(); // DHT 센서 연결 시작
+  connectWiFi(); // wifi연결
+  client.setTimeout(5000); // 특정 시간 동안 작업이 완료되지 않을 경우 작업을 중단하고 에러를 처리하기 위해 사용(5초)
+  IPAddress locala = WiFi.localIP();//ip주소가 배열의 형태로 저장 -> 그대로 사용하면 주소값 출력
+  qwer = String(locala[0]);
+  for(int i = 1; i < 4; i++){
+    qwer = qwer + ".";
+    qwer = qwer + String(locala[i]);
+  } // ipv4형태로 변환.
+}
+
+void loop() {
+  if (!client.connected()) { // 다시 연결
+    connectSendServer();
+    connectServer();
+  }
+}
+
+void connectWiFi() {
+  WiFi.begin(ssid, password); 
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  } // wifi에 접속된 상태가 아니라면 연결이 완료될 때까지 대기한다.
+  Serial.println("");
+  Serial.println("Wi-Fi connected");
+  Serial.println("IP address: ");
+  Serial.println(WiFi.localIP()); // 현재 장치의 ip주소를 출력(확인용)
+}
+
+void connectServer() {
+  Serial.println("Connecting to server...");
+  if (client.connect(server, port)) {
+    Serial.println("Connected to server");
+    String request = "GET /[php파일 이름].php?block_ip=" + qwer;
+    request = request + " HTTP/1.1\r\n";
+    client.print(request); // 예시) GET /[php파일 이름].php?block_ip=192.168.1.29 HTTP/1.1 입력.
+    client.print("Host: ");
+    client.print(server);
+    client.print("\r\n\r\n");
+    delay(10); // delay를 주지 않으면 오류가 발생했다. 데이터를 받아오는데 시간이 필요하다
+    while (client.available()) {
+      String line = client.readStringUntil('\n');
+      if (line.indexOf("ave_temp:") != -1){
+        String a = line.substring(10, 22);
+        temp_led(a);
+      } else if (line.indexOf("ave_humi:") != -1){
+        String b = line.substring(10, 22);
+        humi_led(b);
+      }
+      delay(1);// delay를 주지 않으면 오류가 발생했다. 데이터를 받아오는데 시간이 필요하다
+    }
+  } else {
+    Serial.println("Connection failed");
+  }
+}
+void connectSendServer() {
+  Serial.println("Connecting to server...");
+  if (client.connect(server, port)) {
+    Serial.println("Connected to server");
+    // 여기에서 서버로 데이터를 보낼 수 있습니다.
+    // 예를 들어, 변수를 보내려면 다음과 같이 작성할 수 있습니다.
+    tempA0 = dhtA0.readTemperature();
+    float aaa = floor(tempA0 * 1000) / 1000;
+    tempA0 = aaa;
+    humiA0 = dhtA0.readHumidity();
+    float bbb = floor(humiA0 * 1000) / 1000;
+    humiA0 = bbb;
+    String temp_data = String(tempA0);
+    String humi_data = String(humiA0);
+    String data = "temp_data=" + temp_data + "&humi_data=" + humi_data + "&block_ip=" + qwer;
+
+    // 서버(PHP파일)로 데이터 보내기.
+    client.print("POST /[php파일 이름].php HTTP/1.1\r\n");
+    client.print("Host: ");
+    client.print(server);
+    client.print("\r\n");
+    client.print("Content-Type: application/x-www-form-urlencoded\r\n");
+    client.print("Content-Length: ");
+    client.print(data.length());
+    client.print("\r\n\r\n");
+    client.print(data);
+    client.println();
+
+  } else {
+    Serial.println("Connection failed");
+  }
+}
+
+void temp_led(String a){
+  if(a == "TEMP_LED_ON!"){
+    digitalWrite(8, HIGH);
+  }
+  else if(a == "TEMP_LED_OFF"){
+    digitalWrite(8, LOW);
+  }
+}
+void humi_led(String a){
+  if(a == "HUMI_LED_ON!"){
+    digitalWrite(10, HIGH);
+  }
+  else if(a == "HUMI_LED_OFF"){
+    digitalWrite(10, LOW);
+  }
+}
