@@ -19,9 +19,16 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $temp_data = $_POST['temp_data'];
     $humi_data = $_POST['humi_data'];
     $block_ip = $_POST['block_ip'];
-
+    
+    $sql = "CREATE TABLE IF NOT EXISTS T" ."$block_ip"." (date DATETIME PRIMARY KEY DEFAULT CURRENT_TIMESTAMP, temp_data FLOAT NOT NULL, humi_data FLOAT NOT NULL)";
+    if ($conn->query($sql) === TRUE) {
+        echo "데이터베이스에 입력되었습니다.";
+    } else {
+        echo "입력 중 오류 발생: " . $conn->error;
+    }
+    
     // 데이터베이스에 새로운 게시글 추가
-    $sql = "INSERT INTO temp (temp_data, humi_data, ip) VALUES ($temp_data, $humi_data, '$block_ip')";
+    $sql = "INSERT INTO T"."$block_ip"." (temp_data, humi_data) VALUES ($temp_data, $humi_data)";
 
     if ($conn->query($sql) === TRUE) {
         echo "데이터베이스에 입력되었습니다.";
@@ -36,7 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 $usr_ip = $_GET['block_ip'];
 // get을 통해 디바이스의 ip주소를 받고 이를 이용해 디바이스에 맞는 정보를 가져온다.
 // DB에 저장된 가장 최근 정보를 가지고 온도 led의 on, off를 결정한다.
-$sql = "SELECT temp_data FROM temp WHERE ip = '$usr_ip' AND date = (SELECT MAX(date) FROM temp)";
+$sql = "SELECT temp_data FROM T"."$usr_ip"." WHERE date = (SELECT MAX(date) FROM T"."$usr_ip".")";
 
 $result = mysqli_query($conn, $sql);
 
@@ -55,7 +62,7 @@ if (mysqli_num_rows($result) > 0) {
     echo "조회된 데이터가 없습니다.";
 }
 // DB에 저장된 가장 최근 정보를 가지고 습도 led의 on, off를 결정한다.
-$sql = "SELECT humi_data FROM temp WHERE ip = '$usr_ip' AND date = (SELECT MAX(date) FROM temp)";
+$sql = "SELECT humi_data FROM T"."$usr_ip"." WHERE date = (SELECT MAX(date) FROM T"."$usr_ip".")";
 $result = mysqli_query($conn, $sql);
 
 if (mysqli_num_rows($result) > 0) {

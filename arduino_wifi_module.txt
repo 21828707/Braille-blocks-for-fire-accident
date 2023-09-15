@@ -16,7 +16,7 @@ char server[] = "..."; // PHP 서버 ip주소
 int port = 80; // PHP 서버 접속 포트 -> 아파치 이용.
 float tempA0; // 온도값 저장 변수
 float humiA0; // 습도값 저장 변수
-String qwer; // 디바이스의 ip주소를 저장하기 위한 변수
+String qwer; // 각 디바이스마다 개별 테이블을 제공하기 위해 테이블 이름으로 사용할 변수.
 WiFiEspClient client;// 서버에 연결하여 데이터를 보내거나 받을 때 사용하는 객체
 
 void setup() {
@@ -29,11 +29,7 @@ void setup() {
   connectWiFi(); // wifi연결
   client.setTimeout(5000); // 특정 시간 동안 작업이 완료되지 않을 경우 작업을 중단하고 에러를 처리하기 위해 사용(5초)
   IPAddress locala = WiFi.localIP();//ip주소가 배열의 형태로 저장 -> 그대로 사용하면 주소값 출력
-  qwer = String(locala[0]);
-  for(int i = 1; i < 4; i++){
-    qwer = qwer + ".";
-    qwer = qwer + String(locala[i]);
-  } // ipv4형태로 변환.
+  qwer = "임의의 숫자" // ex 01, 02, 03, ...
 }
 
 void loop() {
