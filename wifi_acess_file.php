@@ -20,7 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $humi_data = $_POST['humi_data'];
     $block_ip = $_POST['block_ip'];
     
-    $sql = "CREATE TABLE IF NOT EXISTS T" ."$block_ip"." (date DATETIME PRIMARY KEY DEFAULT CURRENT_TIMESTAMP, temp_data FLOAT NOT NULL, humi_data FLOAT NOT NULL)";
+    $sql = "CREATE TABLE IF NOT EXISTS T" ."$block_ip"." (date_time DATETIME PRIMARY KEY DEFAULT CURRENT_TIMESTAMP, temp_data FLOAT NOT NULL, humi_data FLOAT NOT NULL)";
     if ($conn->query($sql) === TRUE) {
         echo "데이터베이스에 입력되었습니다.";
     } else {
@@ -36,6 +36,32 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         echo "입력 중 오류 발생: " . $conn->error;
     }
 
+    // 시간별로 데이터 평균화
+    $sql_insert_avg_data = "INSERT INTO T"."$block_ip"."(date_time, avg_temp, avg_humi)
+    SELECT
+        CONCAT(DATE_FORMAT(date_time, '%Y-%m-%d %H'), ':00:00') AS hour_date,
+        AVG(temp_data) AS avg_temp,
+        AVG(humi_data) AS avg_humi
+    FROM T"."$block_ip"."
+    GROUP BY hour_date";
+    if ($conn->query($sql_insert_avg_data) === TRUE) {
+        echo "평균 데이터가 추가되었습니다.";
+
+        //db 삭제 안될시 safe 푸는 코드
+        //SET SQL_SAFE_UPDATES = 0;
+
+        // 정각 데이터는 유지하고 나머지 데이터 삭제
+        $sql_delete_other_data = "DELETE FROM testdb
+        WHERE DATE_FORMAT(date, '%i') <> '00'";
+
+    if ($conn->query($sql_delete_other_data) === TRUE) {
+    echo "나머지 데이터가 삭제되었습니다.";
+    } else {
+        echo "데이터 삭제 중 오류 발생: " . $conn->error;
+    }
+} else {
+        echo "평균 데이터 추가 중 오류 발생: " . $conn->error;
+    }
     // 데이터베이스 연결 종료
     $conn->close();
 }
