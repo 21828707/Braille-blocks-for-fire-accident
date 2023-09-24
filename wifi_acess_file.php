@@ -51,7 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         //SET SQL_SAFE_UPDATES = 0;
 
         // 정각 데이터는 유지하고 나머지 데이터 삭제
-        $sql_delete_other_data = "DELETE FROM testdb
+        $sql_delete_other_data = "DELETE FROM T"."$block_ip"."
         WHERE DATE_FORMAT(date, '%i') <> '00'";
 
     if ($conn->query($sql_delete_other_data) === TRUE) {
