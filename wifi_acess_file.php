@@ -22,10 +22,19 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     
     $sql = "CREATE TABLE IF NOT EXISTS T" ."$block_ip"." (date_time DATETIME PRIMARY KEY DEFAULT CURRENT_TIMESTAMP, temp_data FLOAT NOT NULL, humi_data FLOAT NOT NULL)";
     if ($conn->query($sql) === TRUE) {
-        echo "데이터베이스에 입력되었습니다.";
+        echo "데이터베이스 생성되었습니다.";
     } else {
         echo "입력 중 오류 발생: " . $conn->error;
     }
+
+    //평균집계 테이블 생성
+    $avg_sql = "CREATE TABLE IF NOT EXISTS T1" ."$block_ip"." (hour_date_time DATETIME PRIMARY KEY , avg_temp_data FLOAT NOT NULL, avg_humi_data FLOAT NOT NULL)";
+    if ($conn->query($avg_sql) === TRUE) {
+        echo "데이터베이스에 생성되었습니다.";
+    } else {
+        echo "입력 중 오류 발생: " . $conn->error;
+    }
+    
     
     // 데이터베이스에 새로운 게시글 추가
     $sql = "INSERT INTO T"."$block_ip"." (temp_data, humi_data) VALUES ($temp_data, $humi_data)";
@@ -37,13 +46,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     }
 
     // 시간별로 데이터 평균화
-    $sql_insert_avg_data = "INSERT INTO T"."$block_ip"."(date_time, avg_temp, avg_humi)
+    $sql_insert_avg_data = "INSERT IGNORE INTO T1"."$block_ip"."(hour_date_time, avg_temp, avg_humi)
     SELECT
-        CONCAT(DATE_FORMAT(date_time, '%Y-%m-%d %H'), ':00:00') AS hour_date,
-        AVG(temp_data) AS avg_temp,
-        AVG(humi_data) AS avg_humi
+        DATE_FORMAT(date_time, '%Y-%m-%d %H:00:00'),
+        AVG(temp_data),
+        AVG(humi_data)
     FROM T"."$block_ip"."
-    GROUP BY hour_date";
+    GROUP BY DATE_FORMAT(hour_date_time, '%Y-%m-%d %H:00:00')
+    ON DUPLICATE KEY UPDATE
+    avg_temp_data = VALUES(avg_temp_data),
+    avg_humi_data = VALUES(avg_humi_data);";
+
     if ($conn->query($sql_insert_avg_data) === TRUE) {
         echo "평균 데이터가 추가되었습니다.";
 
