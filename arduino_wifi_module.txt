@@ -13,7 +13,7 @@ DHT dhtA0(DH0, DHTType); // define정의 참고; 온습도 측정을 위한 객�
 char ssid[] = "..."; // Wi-Fi 네트워크 SSID
 char password[] = "..."; // Wi-Fi 네트워크 비밀번호
 char server[] = "..."; // PHP 서버 ip주소
-int port = 80; // PHP 서버 접속 포트 -> 아파치 이용.
+int port = 5000; // PHP 서버 접속 포트 -> 아파치 이용.
 float tempA0; // 온도값 저장 변수
 float humiA0; // 습도값 저장 변수
 String qwer; // 각 디바이스마다 개별 테이블을 제공하기 위해 테이블 이름으로 사용할 변수.
@@ -64,15 +64,16 @@ void connectServer() {
     delay(10); // delay를 주지 않으면 오류가 발생했다. 데이터를 받아오는데 시간이 필요하다
     while (client.available()) {
       String line = client.readStringUntil('\n');
-      if (line.indexOf("ave_temp:") != -1){
-        String a = line.substring(10, 22);
+      //Serial.println(line);
+      if (line.indexOf("ave_temp") != -1){
+        String b = line.substring(13, 25);
+        String a = line.substring(39, 51);
         temp_led(a);
-      } else if (line.indexOf("ave_humi:") != -1){
-        String b = line.substring(10, 22);
         humi_led(b);
       }
-      delay(1);// delay를 주지 않으면 오류가 발생했다. 데이터를 받아오는데 시간이 필요하다
+      delay(1);
     }
+    client.stop();
   } else {
     Serial.println("Connection failed");
   }
@@ -104,6 +105,7 @@ void connectSendServer() {
     client.print("\r\n\r\n");
     client.print(data);
     client.println();
+    client.stop();
 
   } else {
     Serial.println("Connection failed");

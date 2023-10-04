@@ -1,6 +1,7 @@
 #pip install flask
 #pip install request
-from flask import Flask, request, jsonify
+#pip install cryptography
+from flask import Flask, request, jsonify, escape
 
 app = Flask(__name__)
 
@@ -11,12 +12,19 @@ app = Flask(__name__)
 import pymysql.cursors
 import schedule
 import time
+
+
 conn = pymysql.connect(host='localhost',
                             user='root',  # MySQL 사용자 이름
-                            password='1234', # MySQL 비밀번호
-                            db='test', # MySQL 스키마 이름
+                            password='hci7712!@!', # MySQL 비밀번호
+                            db='fire_iot', # MySQL 스키마 이름
                             charset='utf8mb4',
                             cursorclass=pymysql.cursors.DictCursor)
+
+@app.route('/')
+def hello():
+    name = request.args.get("name", "World")
+    return f'Hello, {escape(name)}!'
 
 @app.route('/process_data', methods=['POST'])
 def process_data():
@@ -30,7 +38,7 @@ def process_data():
                         create_table_sql = f"CREATE TABLE IF NOT EXISTS T{block_ip} (date_time DATETIME PRIMARY KEY DEFAULT CURRENT_TIMESTAMP, temp_data FLOAT NOT NULL, humi_data FLOAT NOT NULL)"
                         cursor.execute(create_table_sql)
                     #평균집계 테이블 생성
-                        create_table_avg_sql = "CREATE TABLE IF NOT EXISTS T1{block_ip} (hour_date_time DATETIME PRIMARY KEY , avg_temp_data FLOAT NOT NULL, avg_humi_data FLOAT NOT NULL)"
+                        create_table_avg_sql = f"CREATE TABLE IF NOT EXISTS T1{block_ip} (hour_date_time DATETIME PRIMARY KEY , avg_temp_data FLOAT NOT NULL, avg_humi_data FLOAT NOT NULL)"
                         cursor.execute(create_table_avg_sql)
                         
                     # 데이터 삽입
@@ -57,14 +65,10 @@ def process_data():
                 schedule.every().hour.at(":00").do(automatic_counting)        
                 #이 후 매 시간마다 automatic_counting 실행
                 schedule.every().hour.do(automatic_counting)
-                
-                while True:
-                    schedule.run_pending()
-                    time.sleep(1)        
+                    
                         
             finally:
                 conn.commit()
-                conn.close()
 
 #get을 통해 디바이스의 ip주소를 받고 이를 이용해 디바이스에 맞는 정보를 가져온다.
 #DB에 저장된 가장 최근 정보를 가지고 온도 led의 on, off를 결정한다.
@@ -90,20 +94,16 @@ def get_device_status():
                 average_humi = humi_result['humi_data']
 
                 response = {
-                    'average_temp': average_temp,
-                    'average_humi': average_humi,
+                    'ave_temp': 'TEMP_LED_OFF',
+                    'ave_humi': 'HUMI_LED_OFF',
                 }
                 
             # 데이터를 전송
-                if average_temp >= 30.0:
+                if average_temp >= 10.0:
                     response['ave_temp'] = 'TEMP_LED_ON!'
-                else:
-                    response['ave_temp'] = 'TEMP_LED_OFF'
 
-                if average_humi <= 40.0:
+                if average_humi <= 60.0:
                     response['ave_humi'] = 'HUMI_LED_ON!'
-                else:
-                    response['ave_humi'] = 'HUMI_LED_OFF'
 
                 return jsonify(response)
             else:
@@ -113,4 +113,4 @@ def get_device_status():
         return f"Error: {str(e)}"
     
 if __name__ == '__main__':
-    app.run()
+    app.run(host = "0.0.0.0", port = 5000)
