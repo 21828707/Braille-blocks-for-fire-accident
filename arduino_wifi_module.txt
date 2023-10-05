@@ -27,7 +27,7 @@ void setup() {
   WiFi.init(&espSerial); // WiFiEsp 라이브러리 초기화
   dhtA0.begin(); // DHT 센서 연결 시작
   connectWiFi(); // wifi연결
-  client.setTimeout(5000); // 특정 시간 동안 작업이 완료되지 않을 경우 작업을 중단하고 에러를 처리하기 위해 사용(5초)
+  client.setTimeout(10000); // 특정 시간 동안 작업이 완료되지 않을 경우 작업을 중단하고 에러를 처리하기 위해 사용(5초)
   IPAddress locala = WiFi.localIP();//ip주소가 배열의 형태로 저장 -> 그대로 사용하면 주소값 출력
   qwer = "임의의 숫자" // ex 01, 02, 03, ...
 }
@@ -74,6 +74,7 @@ void connectServer() {
       delay(1);
     }
     client.stop();
+    delay(1000);//딜레이를 주지 않으면 연결을 끝내는데 충분한 시간을 주지 못한다.
   } else {
     Serial.println("Connection failed");
   }
@@ -106,6 +107,7 @@ void connectSendServer() {
     client.print(data);
     client.println();
     client.stop();
+    delay(1000);
 
   } else {
     Serial.println("Connection failed");
