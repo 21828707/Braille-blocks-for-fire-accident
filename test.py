@@ -51,20 +51,21 @@ def process_data():
                             INSERT IGNORE INTO T1{block_ip} (hour_date_time, avg_temp_data, avg_humi_data)
                             SELECT
                                 DATE_FORMAT(date_time, '%Y-%m-%d %H:00:00'),
-                                AVG(temp_data),
-                                AVG(humi_data)
+                                AVG(temp_data) AS avg_temp_data,
+                                AVG(humi_data) AS avg_humi_data
                             FROM T{block_ip}
                             GROUP BY DATE_FORMAT(date_time, '%Y-%m-%d %H:00:00')
                             ON DUPLICATE KEY UPDATE
                             avg_temp_data = VALUES(avg_temp_data),
-                            avg_humi_data = VALUES(avg_humi_data);
+                            avg_humi_data = VALUES(avg_humi_data)
                         """
                         cursor.execute(insert_avg_data_sql)
                 
                 # 1시간 뒤부터 실행
-                schedule.every().hour.at(":00").do(automatic_counting)        
+                schedule.every().hour.at(":12").do(automatic_counting)
+                schedule.run_pending()
                 #이 후 매 시간마다 automatic_counting 실행
-                schedule.every().hour.do(automatic_counting)
+                #schedule.every().hour.do(automatic_counting)
                     
                         
             finally:
@@ -90,19 +91,31 @@ def get_device_status():
             humi_result = cursor.fetchone()
             
             if temp_result is not None and humi_result is not None:
-                average_temp = temp_result['temp_data']
-                average_humi = humi_result['humi_data']
+                latest_temp = temp_result['temp_data']
+                latest_humi = humi_result['humi_data']
+
+                fire_awareness_sql = f"UPDATE fireNow SET switch=false WHERE name='temp'"
+                if latest_temp >= 30.0:
+                    fire_awareness_sql = f"UPDATE fireNow SET switch=true WHERE name='temp'"
+
+                cursor.execute(fire_awareness_sql)
+                #----------------------------------
 
                 response = {
                     'ave_temp': 'TEMP_LED_OFF',
-                    'ave_humi': 'HUMI_LED_OFF',
+                    'ave_humi': 'HUMI_LED_OFF'
                 }
                 
             # 데이터를 전송
-                if average_temp >= 10.0:
-                    response['ave_temp'] = 'TEMP_LED_ON!'
+                temp_aware_sql = f"SELECT switch FROM fireNow WHERE name='temp'"
+                cursor.execute(temp_aware_sql)
+                aware_result = cursor.fetchone()
+                if aware_result is not None:
+                    switch = aware_result['switch']
+                    if switch == 1:
+                        response['ave_temp'] = 'TEMP_LED_ON!'
 
-                if average_humi <= 60.0:
+                if latest_humi <= 50.0:
                     response['ave_humi'] = 'HUMI_LED_ON!'
 
                 return jsonify(response)
