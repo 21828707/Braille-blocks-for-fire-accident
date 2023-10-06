@@ -16,8 +16,8 @@ import time
 
 conn = pymysql.connect(host='localhost',
                             user='root',  # MySQL 사용자 이름
-                            password='hci7712!@!', # MySQL 비밀번호
-                            db='fire_iot', # MySQL 스키마 이름
+                            password='1234', # MySQL 비밀번호
+                            db='testdb', # MySQL 스키마 이름
                             charset='utf8mb4',
                             cursorclass=pymysql.cursors.DictCursor)
 
@@ -56,13 +56,12 @@ def process_data():
                             FROM T{block_ip}
                             GROUP BY DATE_FORMAT(date_time, '%Y-%m-%d %H:00:00')
                             ON DUPLICATE KEY UPDATE
-                            avg_temp_data = VALUES(avg_temp_data),
-                            avg_humi_data = VALUES(avg_humi_data)
+                             hour_date_time = hour_date_time;    #중복 키가 발생할 경우 아무 작업도 수행X
                         """
                         cursor.execute(insert_avg_data_sql)
                 
                 # 1시간 뒤부터 실행
-                schedule.every().hour.at(":12").do(automatic_counting)
+                schedule.every(1).hour.at(":00").do(automatic_counting)
                 schedule.run_pending()
                 #이 후 매 시간마다 automatic_counting 실행
                 #schedule.every().hour.do(automatic_counting)
