@@ -19,6 +19,12 @@ float humiA0; // 습도값 저장 변수
 String qwer; // 각 디바이스마다 개별 테이블을 제공하기 위해 테이블 이름으로 사용할 변수.
 WiFiEspClient client;// 서버에 연결하여 데이터를 보내거나 받을 때 사용하는 객체
 
+int count = 1;
+unsigned long nextMil = millis();
+bool blinkOn = false;
+String a, b;
+int i;
+
 void setup() {
   Serial.begin(9600); // 시리얼 통신 초기화
   espSerial.begin(9600); // ESP-01 모듈과 소프트웨어 시리얼 통신 초기화
@@ -27,7 +33,7 @@ void setup() {
   WiFi.init(&espSerial); // WiFiEsp 라이브러리 초기화
   dhtA0.begin(); // DHT 센서 연결 시작
   connectWiFi(); // wifi연결
-  client.setTimeout(5000); // 특정 시간 동안 작업이 완료되지 않을 경우 작업을 중단하고 에러를 처리하기 위해 사용(5초)
+  client.setTimeout(2000); // 특정 시간 동안 작업이 완료되지 않을 경우 작업을 중단하고 에러를 처리하기 위해 사용(5초)
   IPAddress locala = WiFi.localIP();//ip주소가 배열의 형태로 저장 -> 그대로 사용하면 주소값 출력
   qwer = "임의의 숫자" // ex 01, 02, 03, ...
 }
@@ -35,7 +41,11 @@ void setup() {
 void loop() {
   if (!client.connected()) { // 다시 연결
     connectSendServer();
+    humi_led(a.toInt());
+    temp_led(b.toInt());
+    Serial.println(count);
     connectServer();
+    count = count + 1;
   }
 }
 
@@ -61,19 +71,24 @@ void connectServer() {
     client.print("Host: ");
     client.print(server);
     client.print("\r\n\r\n");
-    delay(10); // delay를 주지 않으면 오류가 발생했다. 데이터를 받아오는데 시간이 필요하다
+    delay(200);
+    Serial.println(client.available());
     while (client.available()) {
       String line = client.readStringUntil('\n');
-      //Serial.println(line);
-      if (line.indexOf("ave_temp") != -1){
-        String b = line.substring(13, 25);
-        String a = line.substring(39, 51);
-        temp_led(a);
-        humi_led(b);
+      if((i = line.indexOf("humi")) != -1){
+        a = line.substring(i+7, i+8);
+        Serial.println(line);
       }
-      delay(1);
+      if((i = line.indexOf("temp")) != -1){
+        b = line.substring(i+7, i+8);
+        break;
+      }
     }
+    humi_led(a.toInt());
+    temp_led(b.toInt());
+
     client.stop();
+    delay(1000);//딜레이를 주지 않으면 연결을 끝내는데 충분한 시간을 주지 못한다.
   } else {
     Serial.println("Connection failed");
   }
@@ -106,25 +121,65 @@ void connectSendServer() {
     client.print(data);
     client.println();
     client.stop();
+    delay(1000);
 
   } else {
     Serial.println("Connection failed");
   }
 }
 
-void temp_led(String a){
-  if(a == "TEMP_LED_ON!"){
-    digitalWrite(8, HIGH);
-  }
-  else if(a == "TEMP_LED_OFF"){
+/*
+void temp_led(int a){
+  if(a == 0){
     digitalWrite(8, LOW);
+  }else if(a == 1 || a == 4 || a == 5){
+    digitalWrite(8, HIGH);
+    int onMil = 500;
+    int offMil = 500;
+    run(onMil, offMil);
+  }else{
+    digitalWrite(8, HIGH); //발원지는 점멸하지 않는다.
   }
+} // 02번 디바이스 기준.
+*/
+
+void temp_led(int a){
+  if(a == 0){
+    digitalWrite(8, LOW);
+  }else if(a == 2 || a == 6){
+    digitalWrite(8, HIGH);
+    int onMil = 500;
+    int offMil = 500;
+    run(onMil, offMil);
+  }else if (a == 4){
+    digitalWrite(8, HIGH);
+    int onMill = 2000;
+    int offMill = 1000;
+    run(onMill, offMill);
+  }else{
+    digitalWrite(8, HIGH); //발원지는 점멸하지 않는다.
+  }
+} // 01번 디바이스 기준.
+
+
+void run(int onMil, int offMil){ // 블링크 false, 다음mills가 millis()로 된 것으로 접근하자 마자 true로 바뀜.
+   if(blinkOn && millis() > nextMil){
+      digitalWrite(8, LOW);
+      blinkOn = false;
+      nextMil = millis() + offMil;
+    }
+    else if (!blinkOn && millis() > nextMil){
+      digitalWrite(8, HIGH);
+      blinkOn = true;
+      nextMil = millis() + onMil;
+    }
 }
-void humi_led(String a){
-  if(a == "HUMI_LED_ON!"){
+
+void humi_led(int a){
+  if(a == 1){
     digitalWrite(10, HIGH);
   }
-  else if(a == "HUMI_LED_OFF"){
+  else {
     digitalWrite(10, LOW);
   }
 }
