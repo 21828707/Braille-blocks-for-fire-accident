@@ -19,3 +19,4 @@
 ### 구성도
 
 - 
+![image](https://github.com/21828707/Braille-blocks-for-fire-accident/assets/102271662/ae95ac1d-d4a4-43e7-9ae0-72f0b03ae53c)
