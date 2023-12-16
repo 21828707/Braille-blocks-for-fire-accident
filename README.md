@@ -19,10 +19,14 @@
 ### 구성도
 
 - <아두이노 - 온습도 센서 /  WIFI모듈 / LED>
+  
   온습도 정보를 수집한다.
+  
   WIFI모듈을 통해 HTTP 통신으로 서버와 통신한다.
 
 - <서버 – python / mysql>
+  
   HTTP POST / GET 방식의 접근을 구분하여 작동
+  
   PYMYSQL 패키지를 사용하여 MYSQL접근 및 사용.
 ![image](https://github.com/21828707/Braille-blocks-for-fire-accident/assets/102271662/ae95ac1d-d4a4-43e7-9ae0-72f0b03ae53c)
