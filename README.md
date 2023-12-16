@@ -35,17 +35,27 @@
 
 작동 순서)
 1. 'arduino_wifi_module.txt'파일의 내용을 수정한다.
+
 1-1. wifi에 접속하기 위한 wifi name과 passward를 입력한다.
+
 1-2. 접속할 서버의 ip주소를 입력한다.
+
 1-3. URL 주소를 수정한다. 예시) /process_data, /get_device_status
 
+
 2. 서버에서 flask를 사용하여 만든 tesp.py를 실행한다.
+
 2-1. DB의 정보 입력 (mysql 사용.)(mysql 사용자[보통은 root], 비밀번호, 스키마 이름 입력)
 
+
 3. 'arduino_wifi_module.txt'파일을 Arduino IDE를 이용해 아두이노(우노)에 업로드한다. 이때, 아두이노의 회로연결은 완료되 있어야 한다.
+
 3-1. wifi모듈(ESP-01 어댑터)의 RX와 TX를 각각 디지털 3, 2로 연결하고 VCC와 GND는 5V와 GND로 전력을 공급한다.
+
 3-2. 온습도 센서는 정면 기준 2번째 핀을 통해 아날로그 인 0번으로 데이터를 받아오며, 1번과 4번 핀으로 5V의 전력을 받아온다.
+
 3-3. LED를 연결한다.
+
 
 4. 연결을 확인한다.
 
